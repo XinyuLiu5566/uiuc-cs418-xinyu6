@@ -114,7 +114,7 @@ void main() {
   // ambient
   vec3 ambient = whiteColor * 0.35;
 
-  outColor = vec4(c.rgb * (ambient + 0.7 * diffuse + 0.3 * gauSpecular + 0.3 * specular),1.0);
+  outColor = vec4(c.rgb * (ambient + 0.7 * diffuse + 0.3 * gauSpecular),1.0);
 }
 `;
 
