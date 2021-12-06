@@ -34,10 +34,21 @@ uniform mat4 uProjectionMatrix;
 
 out vec2 vTexCoord;
 out vec3 vNormal;
+out vec3 modelCoord;
+out vec3 n;
+out vec3 light;
+out vec3 v;
 
 void main() {
-  vTexCoord.s = aVertexPosition.x + 0.5;
-  vTexCoord.t = aVertexPosition.y + 0.5;
+  modelCoord = aVertexPosition;
+  
+  n = normalize(uNormalMatrix * aVertexNormal);
+  light = normalize(vec3(1.5, 1.5, 2.0));
+  vec4 p = uModelViewMatrix * vec4(aVertexPosition, 1.0);
+  v = normalize(-p.xyz);
+
+  vTexCoord.s = 0.5*n.x + 0.5;
+  vTexCoord.t = 0.5*n.y + 0.5;
 
   gl_Position = uProjectionMatrix*uModelViewMatrix*vec4(aVertexPosition, 1.0);
 }
@@ -53,17 +64,57 @@ precision mediump float;
     
 in vec3 vNormal;
 in vec2 vTexCoord;
+in vec3 modelCoord;
+in vec3 n;
+in vec3 light;
+in vec3 v;
 uniform sampler2D uSampler;
 uniform sampler2D uSampler2;
 
 out vec4 outColor;
     
 void main() {
-  vec3 illinois = vec3(texture(uSampler, vTexCoord));
-  vec3 stadium = vec3(texture(uSampler2, vTexCoord));
-  vec3 c = 0.5*illinois + 0.5*stadium;
+  const float PI = 3.1415926535;
+  const vec3 whiteColor = vec3(1.0, 1.0, 1.0);
 
-  outColor = vec4(c,1.0);
+  // normalize again
+  vec3 normal_n = normalize(n);
+  vec3 normal_light = normalize(light);
+  vec3 normal_v = normalize(v);
+
+  // Cylindrical mapping
+  float s = -1.0 * atan(modelCoord.z, modelCoord.x) / (PI * 2.0);
+  float t = 2.0 * modelCoord.y + 0.5;
+  vec2 textureCoord = vec2(s,t);
+  vec3 illinois = vec3(texture(uSampler, textureCoord));
+  vec3 stadium = vec3(texture(uSampler2, vTexCoord));
+
+  // procedural texture
+  vec3 xx = 15.0 * modelCoord;
+  vec3 c = vec3(0.0,0.0,0.0);
+  if (distance(xx, round(xx)) < 0.22) {
+    c = 0.5*illinois + 0.5*stadium + vec3(0.5,0.0,0.5);
+  } else {
+    c = 0.5*illinois + 0.5*stadium;
+  }
+
+  // diffuse reflection
+  vec3 diffuse = whiteColor * max(0.0, dot(normal_n, normal_light));
+
+  // phone specular reflection
+  vec3 specular = whiteColor * pow(max(0.0, dot(normal_v, reflect(-normal_light, normal_n))), 10.0);
+
+  // Gaussian distribution specular reflection
+  // ref: https://paroj.github.io/gltut/Illumination/Tut11%20Gaussian.html
+  // ref: https://en.wikipedia.org/wiki/Specular_highlight#Phong_distribution
+  vec3 _half = normalize((normal_light + normal_v) / 2.0);
+  float angle = acos(dot(_half, normal_n));
+  vec3 gauSpecular = whiteColor * exp(-1.0 * pow(angle/0.4, 2.0));
+
+  // ambient
+  vec3 ambient = whiteColor * 0.35;
+
+  outColor = vec4(c.rgb * (ambient + 0.7 * diffuse + 0.3 * gauSpecular + 0.3 * specular),1.0);
 }
 `;
 
@@ -153,7 +204,7 @@ function initwebgl() {
                 gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
 
   var image = new Image();
-  image.src = "illinois512.png";
+  image.src = "illinois512-noborder.png";
 
   image.addEventListener("load", function() {
     gl.bindTexture(gl.TEXTURE_2D, texture);
