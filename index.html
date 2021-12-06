@@ -89,7 +89,7 @@ void main() {
   vec3 illinois = vec3(texture(uSampler, textureCoord));
   vec3 stadium = vec3(texture(uSampler2, vTexCoord));
 
-  // procedural texture
+  // procedural texture - learn from the office hour
   vec3 xx = 15.0 * modelCoord;
   vec3 c = vec3(0.0,0.0,0.0);
   if (distance(xx, round(xx)) < 0.22) {
@@ -101,8 +101,8 @@ void main() {
   // diffuse reflection
   vec3 diffuse = whiteColor * max(0.0, dot(normal_n, normal_light));
 
-  // phone specular reflection
-  vec3 specular = whiteColor * pow(max(0.0, dot(normal_v, reflect(-normal_light, normal_n))), 10.0);
+  // phone specular reflection (not using, use gaussian specular reflection instead)
+  // vec3 specular = whiteColor * pow(max(0.0, dot(normal_v, reflect(-normal_light, normal_n))), 10.0);
 
   // Gaussian distribution specular reflection
   // ref: https://paroj.github.io/gltut/Illumination/Tut11%20Gaussian.html
@@ -114,7 +114,7 @@ void main() {
   // ambient
   vec3 ambient = whiteColor * 0.35;
 
-  outColor = vec4(c.rgb * (ambient + 0.7 * diffuse + 0.3 * gauSpecular),1.0);
+  outColor = vec4(c.rgb * (ambient + 0.5 * diffuse + 0.4 * gauSpecular),1.0);
 }
 `;
 
